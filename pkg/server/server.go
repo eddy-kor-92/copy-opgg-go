@@ -28,5 +28,5 @@ func GetServer() *Server {
 func (s Server) Run() {
 	fmt.Println("Server started!")
 	http.Handle("/", s.router)
-	http.ListenAndServe(":8080", nil)
+	http.ListenAndServe(":8000", nil)
 }
