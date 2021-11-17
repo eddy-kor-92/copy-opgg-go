@@ -1,0 +1,42 @@
+apiVersion: cicd.tmax.io/v1
+kind: IntegrationConfig
+metadata:
+  name: test-app-ic
+  namespace: gh-test
+spec:
+  git:
+    type: github
+    repository: eddy-kor-92/copy-opgg-go
+    token:
+      valueFrom:
+        secretKeyRef:
+          name: github-access-token
+          key: token
+  jobs:
+    preSubmit:
+    - name: test-unit
+      image: golang:1.17
+      script: |
+        go test -v ./...
+      when:
+        branch:
+        - main
+    postSubmit:
+    - name: build-push-image
+      image: quay.io/buildah/stable
+      securityContext:
+        privileged: true
+      script: |
+        buildah bud --format docker --storage-driver=vfs -f ./Dockerfile -t $IMAGE_URL .
+        buildah push --storage-driver=vfs --creds=$CRED $IMAGE_URL docker://$IMAGE_URL
+      env:
+      - name: IMAGE_URL
+        value: ghkimkor/copy-opgg:latest
+      - name: CRED
+        valueFrom:
+          secretKeyRef:
+             name: dockerhub-secret
+             key: auth
+      when:
+        branch:
+        - main
