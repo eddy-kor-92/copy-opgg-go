@@ -27,18 +27,22 @@ spec:
       securityContext:
         privileged: true
       script: |
-        buildah bud --format docker --storage-driver=vfs -f ./Dockerfile -t $IMAGE_URL .
-        buildah push --storage-driver=vfs --creds=$CRED $IMAGE_URL docker://$IMAGE_URL
+        TAG=${CI_HEAD_REF#refs/tags/}
+        NEW_VERSION_IMG="$IMAGE_URL:$TAG"
+        LATEST_IMG="$IMAGE_URL:latest"
+
+        buildah bud --format docker --storage-driver=vfs -f ./Dockerfile -t $NEW_VERSION_IMG .
+        buildah tag --storage-driver=vfs $NEW_VERSION_IMG $LATEST_IMG
+        buildah push --storage-driver=vfs --creds=$CRED $NEW_VERSION_IMG docker://$NEW_VERSION_IMG
+        buildah push --storage-driver=vfs --creds=$CRED $LATEST_IMG docker://$LATEST_IMG
       env:
       - name: IMAGE_URL
-        value: ghkimkor/copy-opgg:latest
+        value: ghkimkor/copy-opgg
       - name: CRED
         valueFrom:
           secretKeyRef:
              name: dockerhub-secret
              key: auth
       when:
-        branch:
-        - main
         tag:
         - v.*
